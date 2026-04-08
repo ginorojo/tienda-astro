@@ -35,11 +35,13 @@ const { title, description, image, articleDate } = Astro.props;
     <ClientRouter />
   </head>
   <body class="min-h-screen flex flex-col font-sans">
-    <Navbar />
-    <main class="flex-grow">
-      <slot />
-    </main>
-    <Footer />
-    <CartDrawer client:load />
+    <div class="relative w-full overflow-x-hidden flex flex-col min-h-screen flex-grow">
+      <Navbar />
+      <main class="flex-grow">
+        <slot />
+      </main>
+      <Footer />
+      <CartDrawer client:load />
+    </div>
   </body>
 </html>

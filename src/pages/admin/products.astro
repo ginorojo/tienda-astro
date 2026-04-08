@@ -24,12 +24,12 @@ const UPLOAD_PRESET = import.meta.env.PUBLIC_CLOUDINARY_UPLOAD_PRESET;
   <div id="toast_container" class="toast toast-end toast-top z-[100]"></div>
 
   <div class="container mx-auto px-4 py-12">
-    <div class="flex justify-between items-center mb-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
       <div>
         <h1 class="text-3xl font-bold text-brand-primary">Productos</h1>
         <p class="text-slate-500">Administra el catálogo de tu tienda</p>
       </div>
-      <div class="flex gap-4">
+      <div class="flex flex-col lg:flex-row gap-4 w-full sm:w-auto">
         <div id="bulk_report" class="hidden flex-col gap-4 bg-slate-50 px-6 py-4 rounded-3xl border border-slate-100 animate-fade-in max-w-xl">
           <div class="flex items-center gap-4">
             <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Reporte:</span>
@@ -45,22 +45,22 @@ const UPLOAD_PRESET = import.meta.env.PUBLIC_CLOUDINARY_UPLOAD_PRESET;
           </div>
         </div>
         
-        <div class="flex gap-2">
-          <div class="flex flex-col items-center">
+        <div class="flex flex-col sm:flex-row gap-2 w-full lg:w-auto mt-4 lg:mt-0">
+          <div class="flex flex-col items-center w-full sm:w-auto">
             <label class="btn btn-outline gap-2 cursor-pointer w-full">
               <Plus className="w-5 h-5 text-green-600" />
               Carga Masiva (Excel)
               <input type="file" id="bulk_upload_input" accept=".xlsx, .xls, .csv" class="hidden" />
             </label>
-            <span class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Sube productos por lotes</span>
+            <span class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter text-center">Sube productos por lotes</span>
           </div>
           
-          <div class="flex flex-col items-center">
+          <div class="flex flex-col items-center w-full sm:w-auto">
             <button class="btn btn-primary gap-2 w-full" onclick="resetForm(); document.getElementById('add_product_modal').showModal()">
               <Plus className="w-5 h-5" />
               Nuevo Producto
             </button>
-            <span class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Crea un producto manual</span>
+            <span class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter text-center">Crea un producto manual</span>
           </div>
         </div>
       </div>
@@ -159,10 +159,10 @@ const UPLOAD_PRESET = import.meta.env.PUBLIC_CLOUDINARY_UPLOAD_PRESET;
         document.getElementById('imagePreview').src = '/images/placeholder.png';
       }
 
-      // Handle Form Submit with Fetch
-      document.addEventListener('DOMContentLoaded', () => {
+      function initProductForm() {
         const productForm = document.getElementById('productForm');
-        if (productForm) {
+        if (productForm && !productForm.dataset.initialized) {
+          productForm.dataset.initialized = 'true';
           productForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const submitBtn = productForm.querySelector('button[type="submit"]');
@@ -198,64 +198,73 @@ const UPLOAD_PRESET = import.meta.env.PUBLIC_CLOUDINARY_UPLOAD_PRESET;
             }
           });
         }
-      });
+      }
+
+      document.addEventListener('DOMContentLoaded', initProductForm);
+      document.addEventListener('astro:page-load', initProductForm);
 
     </script>
 
     <script is:inline>
-      const bulkInput = document.getElementById('bulk_upload_input');
-      const reportBox = document.getElementById('bulk_report');
-      
-      if (bulkInput) {
-        bulkInput.addEventListener('change', async (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
+      function initBulkUpload() {
+        const bulkInput = document.getElementById('bulk_upload_input');
+        const reportBox = document.getElementById('bulk_report');
+        
+        if (bulkInput && !bulkInput.dataset.initialized) {
+          bulkInput.dataset.initialized = 'true';
+          bulkInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-          const formData = new FormData();
-          formData.append('file', file);
+            const formData = new FormData();
+            formData.append('file', file);
 
-          bulkInput.parentElement.classList.add('loading', 'opacity-50');
-          
-          try {
-            const res = await fetch('/api/admin/products/bulk', {
-              method: 'POST',
-              body: formData
-            });
-
-            const data = await res.json();
+            bulkInput.parentElement.classList.add('loading', 'opacity-50');
             
-            if (!res.ok) {
-              alert(data.error || 'error al subir archivo');
-              return;
+            try {
+              const res = await fetch('/api/admin/products/bulk', {
+                method: 'POST',
+                body: formData
+              });
+
+              const data = await res.json();
+              
+              if (!res.ok) {
+                alert(data.error || 'error al subir archivo');
+                return;
+              }
+
+              document.getElementById('report_created').innerText = `${data.created} Nuevos`;
+              document.getElementById('report_updated').innerText = `${data.updated} Procesados`;
+              document.getElementById('report_failed').innerText = `${data.failed} Errores`;
+              
+              const detailsContainer = document.getElementById('failed_details_container');
+              const detailsList = document.getElementById('failed_details_list');
+              
+              if (data.failed > 0 && data.failedDetails) {
+                detailsList.innerHTML = data.failedDetails.map(d => 
+                  `<li><strong>Fila ${d.row} (SKU: ${d.sku}):</strong> ${d.error}</li>`
+                ).join('');
+                detailsContainer.classList.remove('hidden');
+              } else {
+                detailsContainer.classList.add('hidden');
+              }
+
+              reportBox.classList.remove('hidden');
+              reportBox.classList.add('flex');
+              
+              setTimeout(() => window.location.reload(), 3000);
+            } catch (err) {
+              alert('error al subir archivo');
+            } finally {
+              bulkInput.parentElement.classList.remove('loading', 'opacity-50');
             }
-
-            document.getElementById('report_created').innerText = `${data.created} Nuevos`;
-            document.getElementById('report_updated').innerText = `${data.updated} Procesados`;
-            document.getElementById('report_failed').innerText = `${data.failed} Errores`;
-            
-            const detailsContainer = document.getElementById('failed_details_container');
-            const detailsList = document.getElementById('failed_details_list');
-            
-            if (data.failed > 0 && data.failedDetails) {
-              detailsList.innerHTML = data.failedDetails.map(d => 
-                `<li><strong>Fila ${d.row} (SKU: ${d.sku}):</strong> ${d.error}</li>`
-              ).join('');
-              detailsContainer.classList.remove('hidden');
-            } else {
-              detailsContainer.classList.add('hidden');
-            }
-
-            reportBox.classList.remove('hidden');
-            reportBox.classList.add('flex');
-            
-            setTimeout(() => window.location.reload(), 3000);
-          } catch (err) {
-            alert('error al subir archivo');
-          } finally {
-            bulkInput.parentElement.classList.remove('loading', 'opacity-50');
-          }
-        });
+          });
+        }
       }
+
+      document.addEventListener('DOMContentLoaded', initBulkUpload);
+      document.addEventListener('astro:page-load', initBulkUpload);
     </script>
 
     <!-- Products Table -->

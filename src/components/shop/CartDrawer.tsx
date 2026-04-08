@@ -43,8 +43,8 @@ export const CartDrawer: React.FC = () => {
         onClick={() => isCartOpen.set(false)}
       ></div>
       
-      <div className="absolute inset-y-0 right-0 max-w-full flex">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col animate-slide-left">
+      <div className="absolute inset-y-0 right-0 w-full sm:w-auto max-w-full flex">
+        <div className="w-full sm:w-96 max-w-[100vw] sm:max-w-md bg-white shadow-2xl flex flex-col animate-slide-left">
           <div className="flex items-center justify-between p-6 border-b border-slate-100">
             <h2 className="text-xl font-bold text-brand-primary flex items-center gap-3">
               <ShoppingBag className="w-6 h-6" />

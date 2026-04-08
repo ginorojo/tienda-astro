@@ -26,12 +26,12 @@ const getStatusBadge = (status: string) => {
 
 <BaseLayout title="Gestión de Órdenes | Admin">
   <div class="container mx-auto px-4 py-12">
-    <div class="flex justify-between items-center mb-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
       <div>
         <h1 class="text-3xl font-bold text-brand-primary">Órdenes Confirmadas</h1>
         <p class="text-slate-500">Listado de pagos recibidos y listos para envío</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 w-full sm:w-auto">
         <div class="badge badge-lg badge-primary gap-2 font-bold px-4">
           <CheckCircle className="w-4 h-4" />
           {orders.length} Pagadas
