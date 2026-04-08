@@ -35,8 +35,15 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
   if (error) {
     console.error('Error inserting product:', error);
-    return new Response(error.message, { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
-  return redirect('/admin/products');
+  return new Response(JSON.stringify({ success: true }), { 
+    status: 200, 
+    headers: { 'Content-Type': 'application/json' }
+  });
 };
+

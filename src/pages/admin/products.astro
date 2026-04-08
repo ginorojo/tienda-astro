@@ -2,7 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { supabase } from '@/lib/supabase';
 import type { Product, Category } from '@/types/database';
-import { Plus, Trash2, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, ExternalLink, Image as ImageIcon, Pencil } from 'lucide-react';
 
 // Fetch products and categories
 const { data: productsData } = await supabase
@@ -20,6 +20,9 @@ const UPLOAD_PRESET = import.meta.env.PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 ---
 
 <BaseLayout title="Gestión de Productos | Admin">
+  <!-- Toast Container -->
+  <div id="toast_container" class="toast toast-end toast-top z-[100]"></div>
+
   <div class="container mx-auto px-4 py-12">
     <div class="flex justify-between items-center mb-8">
       <div>
@@ -43,27 +46,86 @@ const UPLOAD_PRESET = import.meta.env.PUBLIC_CLOUDINARY_UPLOAD_PRESET;
         </div>
         
         <div class="flex gap-2">
-          <label class="btn btn-outline gap-2 cursor-pointer">
-            <Plus className="w-5 h-5 text-green-600" />
-            Carga Masiva (Excel)
-            <input type="file" id="bulk_upload_input" accept=".xlsx, .xls, .csv" class="hidden" />
-          </label>
-          <button class="btn btn-primary gap-2" onclick="resetForm(); document.getElementById('add_product_modal').showModal()">
-            <Plus className="w-5 h-5" />
-            Nuevo Producto
-          </button>
+          <div class="flex flex-col items-center">
+            <label class="btn btn-outline gap-2 cursor-pointer w-full">
+              <Plus className="w-5 h-5 text-green-600" />
+              Carga Masiva (Excel)
+              <input type="file" id="bulk_upload_input" accept=".xlsx, .xls, .csv" class="hidden" />
+            </label>
+            <span class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Sube productos por lotes</span>
+          </div>
+          
+          <div class="flex flex-col items-center">
+            <button class="btn btn-primary gap-2 w-full" onclick="resetForm(); document.getElementById('add_product_modal').showModal()">
+              <Plus className="w-5 h-5" />
+              Nuevo Producto
+            </button>
+            <span class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Crea un producto manual</span>
+          </div>
         </div>
       </div>
     </div>
 
     <script is:inline>
+      function showToast(message, type = 'success') {
+        const container = document.getElementById('toast_container');
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type} animate-fade-in shadow-lg border-0`;
+        
+        const icon = type === 'success' 
+          ? '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+          : '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+        
+        toast.innerHTML = `
+          <div class="flex items-center gap-2">
+            ${icon}
+            <span class="font-medium">${message}</span>
+          </div>
+        `;
+        
+        container.appendChild(toast);
+        setTimeout(() => {
+          toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+          setTimeout(() => toast.remove(), 500);
+        }, 3000);
+      }
+
+      async function deleteProduct(productId) {
+        if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+        
+        try {
+          const formData = new FormData();
+          formData.append('id', productId);
+          
+          const res = await fetch('/api/products/delete', {
+            method: 'POST',
+            body: formData
+          });
+          
+          const data = await res.json();
+          
+          if (data.success) {
+            showToast('Producto eliminado correctamente');
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            showToast(data.error || 'Error al eliminar producto', 'error');
+          }
+        } catch (err) {
+          showToast('Error de conexión', 'error');
+        }
+      }
+
       function editProduct(product) {
         const modal = document.getElementById('add_product_modal');
         const form = document.getElementById('productForm');
         const title = document.getElementById('modal_title');
+        const categoryContainer = document.getElementById('category_container');
         
         title.innerText = 'Editar Producto';
-        form.action = '/api/admin/products/update';
+        form.dataset.mode = 'edit';
+        
+        categoryContainer.classList.add('hidden');
+        form.category_id.required = false;
         
         form.id.value = product.id;
         form.name.value = product.name;
@@ -84,12 +146,60 @@ const UPLOAD_PRESET = import.meta.env.PUBLIC_CLOUDINARY_UPLOAD_PRESET;
       function resetForm() {
         const form = document.getElementById('productForm');
         const title = document.getElementById('modal_title');
+        const categoryContainer = document.getElementById('category_container');
+
         title.innerText = 'Añadir Nuevo Producto';
-        form.action = '/api/products';
+        form.dataset.mode = 'create';
+        
+        categoryContainer.classList.remove('hidden');
+        form.category_id.required = true;
+
         form.reset();
         form.id.value = '';
         document.getElementById('imagePreview').src = '/images/placeholder.png';
       }
+
+      // Handle Form Submit with Fetch
+      document.addEventListener('DOMContentLoaded', () => {
+        const productForm = document.getElementById('productForm');
+        if (productForm) {
+          productForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = productForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerText;
+            
+            submitBtn.innerText = 'Guardando...';
+            submitBtn.disabled = true;
+            
+            const formData = new FormData(productForm);
+            const mode = productForm.dataset.mode;
+            const url = mode === 'edit' ? '/api/admin/products/update' : '/api/products';
+            
+            try {
+              const res = await fetch(url, {
+                method: 'POST',
+                body: formData
+              });
+              
+              const data = await res.json();
+              
+              if (data.success) {
+                showToast(mode === 'edit' ? 'Producto actualizado' : 'Producto creado');
+                document.getElementById('add_product_modal').close();
+                setTimeout(() => window.location.reload(), 1000);
+              } else {
+                showToast(data.error || 'Error al guardar', 'error');
+              }
+            } catch (err) {
+              showToast('Error de conexión', 'error');
+            } finally {
+              submitBtn.innerText = originalText;
+              submitBtn.disabled = false;
+            }
+          });
+        }
+      });
+
     </script>
 
     <script is:inline>
@@ -193,22 +303,34 @@ const UPLOAD_PRESET = import.meta.env.PUBLIC_CLOUDINARY_UPLOAD_PRESET;
                   <span class="text-xs text-slate-400">Normal</span>
                 </td>
                 <td class="text-right">
-                  <div class="flex justify-end gap-2">
-                    <button 
-                      class="btn btn-ghost btn-xs btn-circle text-primary"
-                      onclick={`editProduct(${JSON.stringify(product)})`}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                    <a href={`/product/${product.id}`} target="_blank" class="btn btn-ghost btn-xs btn-circle">
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                    <form method="POST" action="/api/products/delete" onsubmit="return confirm('¿Estás seguro de eliminar este producto?')">
-                      <input type="hidden" name="id" value={product.id} />
-                      <button type="submit" class="btn btn-ghost btn-xs btn-circle text-error">
+                  <div class="flex justify-end gap-4">
+                    <div class="flex flex-col items-center gap-1">
+                      <button 
+                        class="btn btn-ghost btn-xs btn-circle text-primary"
+                        onclick={`editProduct(${JSON.stringify(product)})`}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <span class="text-[8px] uppercase font-bold text-slate-400">Editar</span>
+                    </div>
+
+                    <div class="flex flex-col items-center gap-1">
+                      <a href={`/product/${product.id}`} target="_blank" class="btn btn-ghost btn-xs btn-circle text-slate-500">
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                      <span class="text-[8px] uppercase font-bold text-slate-400">Ver</span>
+                    </div>
+
+                    <div class="flex flex-col items-center gap-1">
+                      <button 
+                        type="button"
+                        class="btn btn-ghost btn-xs btn-circle text-error"
+                        onclick={`deleteProduct('${product.id}')`}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    </form>
+                      <span class="text-[8px] uppercase font-bold text-slate-400">Borrar</span>
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -234,7 +356,7 @@ const UPLOAD_PRESET = import.meta.env.PUBLIC_CLOUDINARY_UPLOAD_PRESET;
             <label class="label"><span class="label-text font-bold">SKU</span></label>
             <input type="text" name="sku" class="input input-bordered" placeholder="PROD-XXX" required />
           </div>
-          <div class="form-control">
+          <div class="form-control" id="category_container">
             <label class="label"><span class="label-text font-bold">Categoría</span></label>
             <select name="category_id" class="select select-bordered" required>
               {categories.map(cat => (

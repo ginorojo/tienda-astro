@@ -1,5 +1,9 @@
 ---
-import { ShoppingBag, Search, User, Menu } from 'lucide-react';
+import { ShoppingBag, Search, User, Menu, LogOut } from 'lucide-react';
+import { CartCounter } from '@/components/shop/CartCounter';
+
+const hasSession = Astro.cookies.has("sb-access-token");
+const isAdminPage = Astro.url.pathname.startsWith("/admin");
 ---
 
 <header class="sticky top-0 z-50 glass-effect">
@@ -13,9 +17,10 @@ import { ShoppingBag, Search, User, Menu } from 'lucide-react';
           <ul tabindex={0} class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
             <li><a href="/catalog">Catálogo</a></li>
             <li><a href="/about">Nosotros</a></li>
+            <li><a href="/contact">Contacto</a></li>
           </ul>
         </div>
-        <a href="/" class="text-2xl font-bold tracking-tighter hover:opacity-80 transition-opacity">
+        <a href="/" class="text-xl md:text-2xl font-bold tracking-tighter hover:opacity-80 transition-opacity">
           TIENDA<span class="text-brand-accent">ASTRO</span>
         </a>
       </div>
@@ -25,36 +30,51 @@ import { ShoppingBag, Search, User, Menu } from 'lucide-react';
           <li><a href="/catalog" class="font-medium hover:text-brand-accent">Catálogo</a></li>
           <li><a href="/about" class="font-medium hover:text-brand-accent">Nosotros</a></li>
           <li><a href="/contact" class="font-medium hover:text-brand-accent">Contacto</a></li>
+          {isAdminPage && (
+            <li><a href="/admin" class="font-medium text-primary">Panel Admin</a></li>
+          )}
         </ul>
       </div>
       
-      <div class="navbar-end gap-2">
-        <button class="btn btn-ghost btn-circle">
-          <Search className="w-5 h-5" />
-        </button>
+      <div class="navbar-end gap-0 md:gap-2">
+        {!isAdminPage && (
+          <button class="btn btn-ghost btn-sm md:btn-md btn-circle">
+            <Search className="w-5 h-5 md:w-6 md:h-6" />
+          </button>
+          
+          <button id="cart-button" class="btn btn-ghost btn-sm md:btn-md btn-circle">
+            <CartCounter client:load />
+          </button>
+        )}
         
-        <div class="dropdown dropdown-end">
-          <label tabindex={0} class="btn btn-ghost btn-circle">
-            <div class="indicator">
-              <ShoppingBag className="w-5 h-5" />
-              <span class="badge badge-sm indicator-item badge-accent">0</span>
-            </div>
-          </label>
-          <div tabindex={0} class="mt-3 z-[1] card card-compact dropdown-content w-52 bg-base-100 shadow">
-            <div class="card-body">
-              <span class="font-bold text-lg">0 Productos</span>
-              <span class="text-info">Subtotal: $0</span>
-              <div class="card-actions">
-                <a href="/checkout" class="btn btn-primary btn-block">Ir al Carrito</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <a href="/admin" class="btn btn-ghost btn-circle">
-          <User className="w-5 h-5" />
-        </a>
+        {hasSession ? (
+          <form action="/api/auth/signout" method="POST" class="flex items-center">
+            <button type="submit" class="btn btn-ghost btn-sm md:btn-md btn-circle tooltip tooltip-bottom" data-tip="Cerrar Sesión">
+              <LogOut className="w-5 h-5 md:w-6 md:h-6 text-error" />
+            </button>
+          </form>
+        ) : (
+          <a href="/admin" class="btn btn-ghost btn-sm md:btn-md btn-circle tooltip tooltip-bottom" data-tip="Área Clientes">
+            <User className="w-5 h-5 md:w-6 md:h-6" />
+          </a>
+        )}
       </div>
     </div>
   </div>
 </header>
+
+<script>
+  import { isCartOpen } from '@/store/cart';
+
+  function initTriggers() {
+    const cartButton = document.getElementById('cart-button');
+    if (cartButton) {
+      cartButton.addEventListener('click', () => {
+        isCartOpen.set(true);
+      });
+    }
+  }
+
+  initTriggers();
+  document.addEventListener('astro:page-load', initTriggers);
+</script>

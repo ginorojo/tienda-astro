@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Hero from '@/components/home/Hero.astro';
-import ProductCard from '@/components/shop/ProductCard.astro';
+import { ProductCard } from '@/components/shop/ProductCard';
 import { supabase } from '@/lib/supabase';
 import type { Product } from '@/types/database';
 
@@ -9,7 +9,7 @@ import type { Product } from '@/types/database';
 const { data: productsData, error } = await supabase
   .from('products')
   .select('*')
-  .limit(4);
+  .order('created_at', { ascending: false });
 
 const featuredProducts: Product[] = productsData || [];
 
@@ -28,7 +28,7 @@ if (error) {
     subtitle="Descubre nuestra nueva colección de primavera diseñada para transformar cualquier espacio en una experiencia única."
     ctaText="Comprar Ahora"
     ctaLink="/catalog"
-    image="/images/hero.png"
+    image="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=2070"
   />
 
   <!-- Featured Products Section -->
@@ -45,9 +45,9 @@ if (error) {
         </a>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
         {featuredProducts.map((product) => (
-          <ProductCard {...product} />
+          <ProductCard client:load {...product} />
         ))}
       </div>
     </div>
@@ -85,13 +85,13 @@ if (error) {
   <!-- CTA Section -->
   <section class="py-24 overflow-hidden">
     <div class="container mx-auto px-4">
-      <div class="bg-brand-primary rounded-[3rem] p-12 md:p-24 relative overflow-hidden text-center text-white">
+      <div class="bg-brand-primary rounded-2xl md:rounded-[3rem] p-8 md:p-24 relative overflow-hidden text-center text-white">
         <div class="relative z-10 max-w-2xl mx-auto">
-          <h2 class="text-4xl md:text-6xl font-bold mb-8 tracking-tight">¿Listo para elevar tu estilo?</h2>
-          <p class="text-xl text-slate-300 mb-12">Suscríbete a nuestro newsletter y obtén un 10% de descuento en tu primera compra.</p>
+          <h2 class="text-3xl md:text-6xl font-bold mb-8 tracking-tight">¿Listo para elevar tu estilo?</h2>
+          <p class="text-lg md:text-xl text-slate-300 mb-12">Suscríbete a nuestro newsletter y obtén un 10% de descuento en tu primera compra.</p>
           <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <input type="email" placeholder="Tu correo electrónico" class="input input-lg input-bordered bg-white/10 border-white/20 text-white w-full sm:w-auto min-w-[300px]" />
-            <button class="btn btn-primary btn-lg bg-brand-accent border-brand-accent text-brand-primary font-bold px-12">Suscribirme</button>
+            <input type="email" placeholder="Tu correo electrónico" class="input input-md md:input-lg input-bordered bg-white/10 border-white/20 text-white w-full sm:w-auto sm:min-w-[300px]" />
+            <button class="btn btn-primary btn-md md:btn-lg bg-brand-accent border-brand-accent text-brand-primary font-bold px-8 md:px-12">Suscribirme</button>
           </div>
         </div>
         <!-- Decorative blobs -->

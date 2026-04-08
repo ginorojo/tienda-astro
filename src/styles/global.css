@@ -10,12 +10,20 @@
 }
 
 @layer base {
+  html, body {
+    @apply overflow-x-hidden w-full;
+  }
+
   html {
     scroll-behavior: smooth;
   }
   
   body {
     @apply bg-brand-secondary text-brand-primary antialiased;
+  }
+
+  img, video, canvas, svg {
+    @apply max-w-full h-auto block;
   }
 }
 
@@ -36,4 +44,13 @@
   --accent: #c5a059;
   --neutral: #334155;
   --base-100: #ffffff;
+}
+
+@keyframes slide-left {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-left {
+  animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

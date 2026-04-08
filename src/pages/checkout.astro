@@ -1,0 +1,24 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { CheckoutForm } from '@/components/shop/CheckoutForm';
+import { ArrowLeft } from 'lucide-react';
+---
+
+<BaseLayout 
+  title="Finalizar Compra | Tienda Astro"
+  description="Completa tu pedido y recibe tus productos premium en la comodidad de tu hogar."
+>
+  <div class="bg-white border-b border-slate-100 py-8">
+    <div class="container mx-auto px-4">
+      <a href="/catalog" class="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-brand-primary transition-colors mb-4">
+        <ArrowLeft className="w-4 h-4" />
+        Volver al catálogo
+      </a>
+      <h1 class="text-3xl font-bold text-brand-primary tracking-tight">Finalizar Compra</h1>
+    </div>
+  </div>
+
+  <div class="container mx-auto px-4 py-12">
+    <CheckoutForm client:load />
+  </div>
+</BaseLayout>
