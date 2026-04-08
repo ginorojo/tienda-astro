@@ -1,0 +1,341 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { supabase } from '@/lib/supabase';
+import type { Product, Category } from '@/types/database';
+import { Plus, Trash2, ExternalLink, Image as ImageIcon } from 'lucide-react';
+
+// Fetch products and categories
+const { data: productsData } = await supabase
+  .from('products')
+  .select('*')
+  .order('created_at', { ascending: false });
+
+const { data: categoriesData } = await supabase.from('categories').select('*');
+
+const products = productsData || [];
+const categories = categoriesData || [];
+
+const CLOUD_NAME = import.meta.env.PUBLIC_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = import.meta.env.PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+---
+
+<BaseLayout title="Gestión de Productos | Admin">
+  <div class="container mx-auto px-4 py-12">
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-brand-primary">Productos</h1>
+        <p class="text-slate-500">Administra el catálogo de tu tienda</p>
+      </div>
+      <div class="flex gap-4">
+        <div id="bulk_report" class="hidden flex-col gap-4 bg-slate-50 px-6 py-4 rounded-3xl border border-slate-100 animate-fade-in max-w-xl">
+          <div class="flex items-center gap-4">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Reporte:</span>
+            <span class="badge badge-success gap-2" id="report_created">0 Nuevos</span>
+            <span class="badge badge-info gap-2" id="report_updated">0 Procesados</span>
+            <span class="badge badge-error gap-2" id="report_failed">0 Errores</span>
+            <button onclick="this.closest('#bulk_report').classList.add('hidden')" class="btn btn-ghost btn-xs ml-auto">×</button>
+          </div>
+          <div id="failed_details_container" class="hidden mt-2 p-3 bg-white rounded-xl border border-error/20 overflow-y-auto max-h-40">
+             <h4 class="text-xs font-bold text-error uppercase mb-2">Detalles de errores:</h4>
+             <ul id="failed_details_list" class="text-xs space-y-1 text-slate-600">
+             </ul>
+          </div>
+        </div>
+        
+        <div class="flex gap-2">
+          <label class="btn btn-outline gap-2 cursor-pointer">
+            <Plus className="w-5 h-5 text-green-600" />
+            Carga Masiva (Excel)
+            <input type="file" id="bulk_upload_input" accept=".xlsx, .xls, .csv" class="hidden" />
+          </label>
+          <button class="btn btn-primary gap-2" onclick="resetForm(); document.getElementById('add_product_modal').showModal()">
+            <Plus className="w-5 h-5" />
+            Nuevo Producto
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script is:inline>
+      function editProduct(product) {
+        const modal = document.getElementById('add_product_modal');
+        const form = document.getElementById('productForm');
+        const title = document.getElementById('modal_title');
+        
+        title.innerText = 'Editar Producto';
+        form.action = '/api/admin/products/update';
+        
+        form.id.value = product.id;
+        form.name.value = product.name;
+        form.sku.value = product.sku;
+        form.description.value = product.description || '';
+        form.price.value = product.price;
+        form.stock.value = product.stock;
+        form.weight.value = product.weight;
+        form.width.value = product.width;
+        form.height.value = product.height;
+        form.length.value = product.length;
+        form.image_url.value = product.image_url || '';
+        document.getElementById('imagePreview').src = product.image_url || '/images/placeholder.png';
+        
+        modal.showModal();
+      }
+
+      function resetForm() {
+        const form = document.getElementById('productForm');
+        const title = document.getElementById('modal_title');
+        title.innerText = 'Añadir Nuevo Producto';
+        form.action = '/api/products';
+        form.reset();
+        form.id.value = '';
+        document.getElementById('imagePreview').src = '/images/placeholder.png';
+      }
+    </script>
+
+    <script is:inline>
+      const bulkInput = document.getElementById('bulk_upload_input');
+      const reportBox = document.getElementById('bulk_report');
+      
+      if (bulkInput) {
+        bulkInput.addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const formData = new FormData();
+          formData.append('file', file);
+
+          bulkInput.parentElement.classList.add('loading', 'opacity-50');
+          
+          try {
+            const res = await fetch('/api/admin/products/bulk', {
+              method: 'POST',
+              body: formData
+            });
+
+            const data = await res.json();
+            
+            if (!res.ok) {
+              alert(data.error || 'error al subir archivo');
+              return;
+            }
+
+            document.getElementById('report_created').innerText = `${data.created} Nuevos`;
+            document.getElementById('report_updated').innerText = `${data.updated} Procesados`;
+            document.getElementById('report_failed').innerText = `${data.failed} Errores`;
+            
+            const detailsContainer = document.getElementById('failed_details_container');
+            const detailsList = document.getElementById('failed_details_list');
+            
+            if (data.failed > 0 && data.failedDetails) {
+              detailsList.innerHTML = data.failedDetails.map(d => 
+                `<li><strong>Fila ${d.row} (SKU: ${d.sku}):</strong> ${d.error}</li>`
+              ).join('');
+              detailsContainer.classList.remove('hidden');
+            } else {
+              detailsContainer.classList.add('hidden');
+            }
+
+            reportBox.classList.remove('hidden');
+            reportBox.classList.add('flex');
+            
+            setTimeout(() => window.location.reload(), 3000);
+          } catch (err) {
+            alert('error al subir archivo');
+          } finally {
+            bulkInput.parentElement.classList.remove('loading', 'opacity-50');
+          }
+        });
+      }
+    </script>
+
+    <!-- Products Table -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="table table-lg">
+          <thead>
+            <tr class="bg-slate-50">
+              <th>Producto</th>
+              <th>Categoría</th>
+              <th>Precio</th>
+              <th>Stock</th>
+              <th>Estado</th>
+              <th class="text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((product: any) => (
+              <tr>
+                <td>
+                  <div class="flex items-center gap-4">
+                    <div class="avatar">
+                      <div class="mask mask-squircle w-12 h-12 bg-slate-100">
+                        <img src={product.image_url || '/images/placeholder.png'} alt={product.name} />
+                      </div>
+                    </div>
+                    <div>
+                      <div class="font-bold">{product.name}</div>
+                      <div class="text-sm opacity-50 truncate max-w-[200px]">{product.description}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge badge-ghost">Hogar</span>
+                </td>
+                <td class="font-mono font-medium">
+                  {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(product.price)}
+                </td>
+                <td>
+                  <div class={`badge ${product.stock > 0 ? 'badge-success' : 'badge-error'} badge-sm`}>
+                    {product.stock} en stock
+                  </div>
+                </td>
+                <td>
+                  <span class="text-xs text-slate-400">Normal</span>
+                </td>
+                <td class="text-right">
+                  <div class="flex justify-end gap-2">
+                    <button 
+                      class="btn btn-ghost btn-xs btn-circle text-primary"
+                      onclick={`editProduct(${JSON.stringify(product)})`}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                    <a href={`/product/${product.id}`} target="_blank" class="btn btn-ghost btn-xs btn-circle">
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                    <form method="POST" action="/api/products/delete" onsubmit="return confirm('¿Estás seguro de eliminar este producto?')">
+                      <input type="hidden" name="id" value={product.id} />
+                      <button type="submit" class="btn btn-ghost btn-xs btn-circle text-error">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Product Modal -->
+  <dialog id="add_product_modal" class="modal">
+    <div class="modal-box max-w-2xl">
+      <h3 id="modal_title" class="font-bold text-2xl mb-6">Añadir Nuevo Producto</h3>
+      <form method="POST" action="/api/products" class="space-y-6" id="productForm">
+        <input type="hidden" name="id" id="edit_product_id" />
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Nombre</span></label>
+            <input type="text" name="name" class="input input-bordered" required />
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">SKU</span></label>
+            <input type="text" name="sku" class="input input-bordered" placeholder="PROD-XXX" required />
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Categoría</span></label>
+            <select name="category_id" class="select select-bordered" required>
+              {categories.map(cat => (
+                <option value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Precio (CLP)</span></label>
+            <input type="number" name="price" class="input input-bordered" required />
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Stock</span></label>
+            <input type="number" name="stock" class="input input-bordered" required />
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Peso (kg)</span></label>
+            <input type="number" step="0.1" name="weight" class="input input-bordered" required />
+          </div>
+          <div class="form-control flex flex-row gap-2 pt-9">
+            <input type="number" name="width" placeholder="W" class="input input-bordered w-full" required />
+            <input type="number" name="height" placeholder="H" class="input input-bordered w-full" required />
+            <input type="number" name="length" placeholder="L" class="input input-bordered w-full" required />
+          </div>
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text font-bold">Descripción</span></label>
+          <textarea name="description" class="textarea textarea-bordered h-24"></textarea>
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text font-bold">Imagen del Producto</span></label>
+          <div class="flex items-center gap-4">
+            <img id="imagePreview" src="/images/placeholder.png" class="w-20 h-20 object-cover rounded-xl border" />
+            <input type="hidden" name="image_url" id="image_url" />
+            <button type="button" id="upload_widget" class="btn btn-outline gap-2 flex-grow">
+              <ImageIcon className="w-5 h-5" />
+              Subir a Cloudinary
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-action">
+          <button class="btn btn-ghost" type="button" onclick="this.closest('dialog').close()">Cancelar</button>
+          <button class="btn btn-primary px-8" type="submit">Guardar Producto</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Cloudinary Widget Script -->
+  <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+  
+  <script is:inline define:vars={{ CLOUD_NAME, UPLOAD_PRESET }}>
+    const uploadWidget = document.getElementById('upload_widget');
+    const imagePreview = document.getElementById('imagePreview');
+    const imageUrlInput = document.getElementById('image_url');
+
+    if (uploadWidget) {
+      const myWidget = cloudinary.createUploadWidget({
+        cloudName: CLOUD_NAME || 'test', 
+        uploadPreset: UPLOAD_PRESET || 'test',
+        sources: ['local', 'url', 'camera'],
+        showAdvancedOptions: false,
+        cropping: true,
+        multiple: false,
+        defaultSource: 'local',
+        styles: {
+          palette: {
+            window: "#FFFFFF",
+            windowBorder: "#90A0B3",
+            tabIcon: "#0078FF",
+            menuIcons: "#5A616A",
+            textDark: "#000000",
+            textLight: "#FFFFFF",
+            link: "#0078FF",
+            action: "#FF620C",
+            inactiveTabIcon: "#0E2F5A",
+            error: "#F44235",
+            inProgress: "#0078FF",
+            complete: "#20B832",
+            sourceBg: "#E4EBF1"
+          }
+        }
+      }, (error, result) => { 
+        if (!error && result && result.event === "success") { 
+          console.log('Done! Here is the image info: ', result.info); 
+          imagePreview.src = result.info.secure_url;
+          imageUrlInput.value = result.info.secure_url;
+          uploadWidget.innerText = '¡Imagen Subida!';
+          uploadWidget.classList.add('btn-success');
+        }
+      });
+
+      uploadWidget.addEventListener('click', () => {
+        myWidget.open();
+      }, false);
+    }
+  </script>
+</BaseLayout>

@@ -1,0 +1,41 @@
+---
+import '@/styles/global.css';
+import Navbar from '@/components/common/Navbar.astro';
+import Footer from '@/components/common/Footer.astro';
+import MetaTags from '@/components/seo/MetaTags.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  articleDate?: string;
+}
+
+const { title, description, image, articleDate } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="es" data-theme="premium">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <MetaTags 
+      title={title} 
+      description={description} 
+      image={image} 
+      articleDate={articleDate} 
+    />
+  </head>
+  <body class="min-h-screen flex flex-col font-sans">
+    <Navbar />
+    <main class="flex-grow">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

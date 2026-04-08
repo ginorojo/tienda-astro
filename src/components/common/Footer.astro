@@ -1,0 +1,56 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="bg-brand-primary text-brand-secondary pt-16 pb-8">
+  <div class="container mx-auto px-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+      <div class="col-span-1 md:col-span-1">
+        <a href="/" class="text-2xl font-bold tracking-tighter mb-4 block">
+          TIENDA<span class="text-brand-accent">ASTRO</span>
+        </a>
+        <p class="text-slate-400 text-sm leading-relaxed">
+          Ofreciendo productos de la más alta calidad con un toque de elegancia desde 2024. Despacho a todo Chile.
+        </p>
+      </div>
+      
+      <div>
+        <h3 class="font-bold text-lg mb-6">Explorar</h3>
+        <ul class="space-y-4 text-slate-400 text-sm">
+          <li><a href="/catalog" class="hover:text-brand-accent transition-colors">Catálogo</a></li>
+          <li><a href="/collections" class="hover:text-brand-accent transition-colors">Colecciones</a></li>
+          <li><a href="/offers" class="hover:text-brand-accent transition-colors">Ofertas</a></li>
+        </ul>
+      </div>
+      
+      <div>
+        <h3 class="font-bold text-lg mb-6">Ayuda</h3>
+        <ul class="space-y-4 text-slate-400 text-sm">
+          <li><a href="/faq" class="hover:text-brand-accent transition-colors">Preguntas Frecuentes</a></li>
+          <li><a href="/shipping" class="hover:text-brand-accent transition-colors">Envíos y Devoluciones</a></li>
+          <li><a href="/tracking" class="hover:text-brand-accent transition-colors">Sigue tu Pedido</a></li>
+        </ul>
+      </div>
+      
+      <div>
+        <h3 class="font-bold text-lg mb-6">Newsletter</h3>
+        <p class="text-slate-400 text-sm mb-4">Suscríbete para recibir ofertas exclusivas.</p>
+        <div class="join w-full">
+          <input class="input input-bordered join-item bg-slate-900 border-slate-700 w-full" placeholder="email@ejemplo.com" />
+          <button class="btn btn-primary join-item bg-brand-accent border-brand-accent text-brand-primary">Unirse</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+      <p class="text-slate-500 text-xs">
+        © {currentYear} Tienda Astro. Todos los derechos reservados.
+      </p>
+      <div class="flex gap-6">
+        <a href="#" class="text-slate-500 hover:text-white transition-colors">Instagram</a>
+        <a href="#" class="text-slate-500 hover:text-white transition-colors">Facebook</a>
+        <a href="#" class="text-slate-500 hover:text-white transition-colors">LinkedIn</a>
+      </div>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,130 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { AddToCart } from '@/components/shop/AddToCart';
+import { ChevronRight, ShieldCheck, Truck, RefreshCcw } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+
+const { id } = Astro.params;
+
+// Fetch product from Supabase
+const { data: product, error } = await supabase
+  .from('products')
+  .select('*, categories(name)')
+  .eq('id', id)
+  .single();
+
+if (error || !product) {
+  return Astro.redirect('/404');
+}
+
+const formattedPrice = new Intl.NumberFormat('es-CL', {
+  style: 'currency',
+  currency: 'CLP',
+}).format(product.price);
+---
+
+<BaseLayout 
+  title={`${product.name} | Tienda Astro`}
+  description={product.description}
+  image={product.image}
+>
+  <div class="container mx-auto px-4 py-8 md:py-16">
+    <!-- Breadcrumbs -->
+    <div class="flex items-center gap-2 text-sm text-slate-500 mb-8 overflow-x-auto whitespace-nowrap">
+      <a href="/" class="hover:text-brand-primary">Inicio</a>
+      <ChevronRight className="w-4 h-4 flex-shrink-0" />
+      <a href="/catalog" class="hover:text-brand-primary">Catálogo</a>
+      <ChevronRight className="w-4 h-4 flex-shrink-0" />
+      <span class="text-brand-primary font-medium">{product.name}</span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-20">
+      <!-- Image Gallery -->
+      <div class="space-y-4">
+        <div class="aspect-square rounded-[2rem] overflow-hidden bg-slate-50 border border-slate-100">
+          <img 
+            src={product.image_url || '/images/placeholder.png'} 
+            alt={product.name} 
+            class="w-full h-full object-cover"
+          />
+        </div>
+        <div class="grid grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(() => (
+            <div class="aspect-square rounded-xl overflow-hidden bg-slate-50 border border-slate-100 cursor-pointer hover:border-brand-accent transition-colors">
+              <img src={product.image_url || '/images/placeholder.png'} alt="Thumbnail" class="w-full h-full object-cover opacity-60 hover:opacity-100 transition-opacity" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Product Info -->
+      <div class="flex flex-col">
+        <span class="text-xs font-bold text-brand-accent uppercase tracking-[0.2em] mb-4">{product.categories?.name || 'General'}</span>
+        <h1 class="text-4xl md:text-5xl font-bold text-brand-primary mb-6 tracking-tight leading-tight">
+          {product.name}
+        </h1>
+        
+        <div class="flex items-center gap-4 mb-8">
+          <span class="text-3xl font-bold text-brand-primary">{formattedPrice}</span>
+          <div class="badge badge-accent badge-outline font-bold">12 cuotas sin interés</div>
+        </div>
+
+        <p class="text-slate-600 text-lg leading-relaxed mb-8">
+          {product.description}
+        </p>
+
+        {product.features && (
+          <div class="space-y-4 mb-10">
+            <h3 class="font-bold text-brand-primary uppercase text-sm tracking-wider">Características:</h3>
+            <ul class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {product.features.map((feature: string) => (
+                <li class="flex items-center gap-3 text-slate-600">
+                  <div class="w-1.5 h-1.5 rounded-full bg-brand-accent"></div>
+                  {feature}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <!-- Variation Selectors (Mock) -->
+        <div class="mb-10 space-y-6">
+          <div>
+            <label class="block font-bold text-sm mb-3">SELECCIONAR COLOR</label>
+            <div class="flex gap-3">
+              <button class="w-8 h-8 rounded-full bg-brand-primary border-2 border-brand-accent ring-2 ring-transparent ring-offset-2"></button>
+              <button class="w-8 h-8 rounded-full bg-slate-300 border-2 border-transparent"></button>
+              <button class="w-8 h-8 rounded-full bg-amber-200 border-2 border-transparent"></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4 mb-12">
+          <AddToCart 
+            client:load 
+            id={product.id} 
+            name={product.name} 
+            price={product.price} 
+            image={product.image_url || ''} 
+          />
+        </div>
+
+        <!-- Trust Badges -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8 border-t border-slate-100">
+          <div class="flex items-center gap-3">
+            <ShieldCheck className="w-5 h-5 text-brand-accent" />
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-tighter">Compra Segura</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <Truck className="w-5 h-5 text-brand-accent" />
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-tighter">Envío Express</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <RefreshCcw className="w-5 h-5 text-brand-accent" />
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-tighter">30 días Retorno</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

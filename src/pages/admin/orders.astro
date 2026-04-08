@@ -1,0 +1,99 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { supabase } from '@/lib/supabase';
+import type { Order } from '@/types/database';
+import { Package, Truck, CheckCircle, Clock } from 'lucide-react';
+
+// Fetch orders filtered by 'paid' by default
+const { data: ordersData, error } = await supabase
+  .from('orders')
+  .select('*')
+  .eq('status', 'paid')
+  .order('created_at', { ascending: false });
+
+const orders = ordersData || [];
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'paid': return 'badge-success';
+    case 'pending': return 'badge-warning';
+    case 'failed': return 'badge-error';
+    case 'refunded': return 'badge-neutral';
+    default: return 'badge-ghost';
+  }
+};
+---
+
+<BaseLayout title="Gestión de Órdenes | Admin">
+  <div class="container mx-auto px-4 py-12">
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-brand-primary">Órdenes Confirmadas</h1>
+        <p class="text-slate-500">Listado de pagos recibidos y listos para envío</p>
+      </div>
+      <div class="flex gap-2">
+        <div class="badge badge-lg badge-primary gap-2 font-bold px-4">
+          <CheckCircle className="w-4 h-4" />
+          {orders.length} Pagadas
+        </div>
+      </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="table table-lg">
+          <thead>
+            <tr class="bg-slate-50">
+              <th>ID Orden</th>
+              <th>Cliente</th>
+              <th>Total</th>
+              <th>Estado Envío</th>
+              <th>Fecha</th>
+              <th class="text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map((order: Order) => (
+              <tr>
+                <td class="font-mono text-sm font-bold">
+                  #{order.flow_order_id || order.id.slice(0, 8)}
+                </td>
+                <td>
+                  <div>
+                    <div class="font-bold">{order.customer_name || 'Sin Nombre'}</div>
+                    <div class="text-sm opacity-50">{order.customer_email}</div>
+                  </div>
+                </td>
+                <td class="font-bold">
+                  {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(order.total)}
+                </td>
+                <td>
+                  <div class="flex flex-col gap-1">
+                    <span class={`badge ${getStatusBadge(order.status)} badge-sm`}>{order.status}</span>
+                    {order.tracking_number && (
+                      <span class="text-xs font-mono text-slate-400">Track: {order.tracking_number}</span>
+                    )}
+                  </div>
+                </td>
+                <td class="text-sm">
+                  {new Date(order.created_at).toLocaleDateString('es-CL')}
+                </td>
+                <td class="text-right">
+                  <button class="btn btn-ghost btn-xs">Ver Detalle</button>
+                </td>
+              </tr>
+            ))}
+            {orders.length === 0 && (
+              <tr>
+                <td colspan="6" class="text-center py-12 text-slate-400 italic">
+                  No hay órdenes pagadas para mostrar.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,69 @@
+---
+import { ShoppingCart, Eye } from 'lucide-react';
+
+interface Props {
+  id: string;
+  name: string;
+  price: number;
+  image?: string;
+  image_url?: string;
+  category?: string;
+  categories?: { name: string } | null;
+  isNew?: boolean;
+  onSale?: boolean;
+}
+
+const { id, name, price, image, image_url, category, categories, isNew, onSale } = Astro.props;
+
+const displayImage = image_url || image || '/images/placeholder.png';
+const displayCategory = categories?.name || category || 'General';
+
+const formattedPrice = new Intl.NumberFormat('es-CL', {
+  style: 'currency',
+  currency: 'CLP',
+}).format(price);
+---
+
+<div class="premium-card group">
+  <div class="relative overflow-hidden rounded-t-2xl aspect-square bg-slate-50">
+    <!-- Badges -->
+    <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
+      {isNew && <span class="badge badge-primary font-bold">NUEVO</span>}
+      {onSale && <span class="badge badge-accent font-bold text-brand-primary">OFERTA</span>}
+    </div>
+    
+    <!-- Image -->
+    <img 
+      src={displayImage} 
+      alt={name} 
+      class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+    />
+    
+    <!-- Quick Actions -->
+    <div class="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+      <button class="btn btn-circle btn-primary shadow-lg border-none hover:scale-110">
+        <ShoppingCart className="w-5 h-5" />
+      </button>
+      <a href={`/product/${id}`} class="btn btn-circle bg-white text-brand-primary border-none shadow-lg hover:scale-110">
+        <Eye className="w-5 h-5" />
+      </a>
+    </div>
+  </div>
+  
+  <div class="p-6">
+    <div class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
+      {displayCategory}
+    </div>
+    <h3 class="font-bold text-lg mb-2 text-brand-primary truncate group-hover:text-brand-accent transition-colors">
+      {name}
+    </h3>
+    <div class="flex items-center justify-between">
+      <span class="text-xl font-bold text-brand-primary">{formattedPrice}</span>
+      <div class="rating rating-xs">
+        {[1, 2, 3, 4, 5].map(() => (
+          <input type="radio" name={`rating-${id}`} class="mask mask-star-2 bg-brand-accent" checked />
+        ))}
+      </div>
+    </div>
+  </div>
+</div>

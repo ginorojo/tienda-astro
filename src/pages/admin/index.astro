@@ -1,0 +1,67 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { supabase } from '@/lib/supabase';
+import { Package, ShoppingBag, TrendingUp, Users } from 'lucide-react';
+
+// Fetch basic stats
+const { count: productsCount } = await supabase.from('products').select('*', { count: 'exact', head: true });
+const { count: categoriesCount } = await supabase.from('categories').select('*', { count: 'exact', head: true });
+
+const stats = [
+  { name: 'Total Productos', value: productsCount || 0, icon: Package, color: 'text-blue-600' },
+  { name: 'Categorías', value: categoriesCount || 0, icon: ShoppingBag, color: 'text-purple-600' },
+  { name: 'Ventas (Hito)', value: '$0', icon: TrendingUp, color: 'text-green-600' },
+  { name: 'Clientes', value: '0', icon: Users, color: 'text-amber-600' },
+];
+---
+
+<BaseLayout title="Admin Dashboard | Tienda Astro">
+  <div class="container mx-auto px-4 py-12">
+    <div class="flex justify-between items-center mb-12">
+      <h1 class="text-3xl font-bold text-brand-primary">Panel de Control</h1>
+      <div class="flex gap-4">
+        <a href="/admin/orders" class="btn btn-outline gap-2">
+          <ShoppingBag className="w-5 h-5 text-purple-600" />
+          Órdenes
+        </a>
+        <a href="/admin/products" class="btn btn-primary gap-2">
+          <Package className="w-5 h-5" />
+          Productos
+        </a>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+      {stats.map((stat) => (
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-6">
+          <div class={`p-4 rounded-xl bg-slate-50 ${stat.color}`}>
+            <stat.icon className="w-8 h-8" />
+          </div>
+          <div>
+            <p class="text-sm font-medium text-slate-500">{stat.name}</p>
+            <p class="text-2xl font-bold text-brand-primary">{stat.value}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Recent Activity -->
+      <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+        <h2 class="text-xl font-bold mb-6">Actividad Reciente</h2>
+        <div class="space-y-6">
+          <p class="text-slate-500 italic">No hay actividad reciente para mostrar.</p>
+        </div>
+      </div>
+
+      <!-- Inventory Status -->
+      <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+        <h2 class="text-xl font-bold mb-6">Estado de Inventario</h2>
+        <div class="space-y-6">
+           <p class="text-slate-500 italic">Todo el inventario está al día.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
