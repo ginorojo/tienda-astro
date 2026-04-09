@@ -1,14 +1,15 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 
-export const POST: APIRoute = async ({ request, url }) => {
+export const POST: APIRoute = async ({ request, url, locals }) => {
   try {
     const data = await request.json();
     const { amount, email, subject, customerName, items, shippingData } = data;
 
-    const apiKey = import.meta.env.FLOW_API_KEY;
-    const secretKey = import.meta.env.FLOW_SECRET_KEY;
-    const flowUrl = import.meta.env.FLOW_API_URL || 'https://sandbox.flow.cl/api';
+    const runtimeEnv: any = (locals as any)?.runtime?.env || {};
+    const apiKey = runtimeEnv.FLOW_API_KEY || import.meta.env.FLOW_API_KEY;
+    const secretKey = runtimeEnv.FLOW_SECRET_KEY || import.meta.env.FLOW_SECRET_KEY;
+    const flowUrl = runtimeEnv.FLOW_API_URL || import.meta.env.FLOW_API_URL || 'https://sandbox.flow.cl/api';
 
     if (!apiKey || !secretKey) {
       return new Response(JSON.stringify({ error: 'Las credenciales de Flow no están configuradas en el .env' }), { status: 500 });

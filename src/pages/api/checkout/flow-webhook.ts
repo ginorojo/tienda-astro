@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const formData = await request.formData();
     const token = formData.get('token')?.toString();
@@ -10,9 +10,10 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response('No token provided', { status: 400 });
     }
 
-    const apiKey = import.meta.env.FLOW_API_KEY;
-    const secretKey = import.meta.env.FLOW_SECRET_KEY;
-    const flowUrl = import.meta.env.FLOW_API_URL || 'https://sandbox.flow.cl/api';
+    const runtimeEnv: any = (locals as any)?.runtime?.env || {};
+    const apiKey = runtimeEnv.FLOW_API_KEY || import.meta.env.FLOW_API_KEY;
+    const secretKey = runtimeEnv.FLOW_SECRET_KEY || import.meta.env.FLOW_SECRET_KEY;
+    const flowUrl = runtimeEnv.FLOW_API_URL || import.meta.env.FLOW_API_URL || 'https://sandbox.flow.cl/api';
 
     if (!apiKey || !secretKey) {
       return new Response('Configuración incompleta', { status: 500 });
