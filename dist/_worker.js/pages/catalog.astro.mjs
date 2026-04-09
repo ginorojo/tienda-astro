@@ -1,23 +1,141 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { e as createComponent, k as renderComponent, r as renderTemplate, h as createAstro, m as maybeRenderHead, g as addAttribute } from '../chunks/astro/server_C_2jrCVI.mjs';
-import { $ as $$BaseLayout } from '../chunks/BaseLayout_CCUYeVe2.mjs';
-import { $ as $$ProductCard } from '../chunks/ProductCard_m3d74PN0.mjs';
-export { r as renderers } from '../chunks/_@astro-renderers_pmHg7BfK.mjs';
+import { e as createComponent, k as renderComponent, r as renderTemplate, h as createAstro, m as maybeRenderHead } from '../chunks/astro/server_BMPoQNKY.mjs';
+import { j as jsxRuntimeExports, $ as $$BaseLayout } from '../chunks/BaseLayout_Do-MAjHR.mjs';
+import { a as reactExports } from '../chunks/_@astro-renderers_Bp-P1Nvp.mjs';
+export { r as renderers } from '../chunks/_@astro-renderers_Bp-P1Nvp.mjs';
+import { P as ProductCard } from '../chunks/ProductCard_C5C-6mqp.mjs';
+import { s as supabase } from '../chunks/supabase_C7auxTPX.mjs';
+
+const ProductExplorer = ({ initialProducts, categories }) => {
+  const [selectedCategory, setSelectedCategory] = reactExports.useState("Todos");
+  const [priceRange, setPriceRange] = reactExports.useState(1e6);
+  const [sortBy, setSortBy] = reactExports.useState("Más recientes");
+  const [searchQuery, setSearchQuery] = reactExports.useState("");
+  const filteredProducts = reactExports.useMemo(() => {
+    let result = [...initialProducts];
+    result = result.filter((p) => p.price <= priceRange);
+    if (searchQuery) {
+      result = result.filter(
+        (p) => p.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    if (sortBy === "Precio: Menor a Mayor") {
+      result.sort((a, b) => a.price - b.price);
+    } else if (sortBy === "Precio: Mayor a Menor") {
+      result.sort((a, b) => b.price - a.price);
+    } else if (sortBy === "Más recientes") {
+      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+    return result;
+  }, [initialProducts, selectedCategory, priceRange, sortBy, searchQuery]);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col lg:flex-row gap-12", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("aside", { className: "w-full lg:w-64 flex-shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "sticky top-28 space-y-8", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-bold text-lg mb-4 text-brand-primary", children: "Búsqueda" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "input",
+          {
+            type: "text",
+            placeholder: "Buscar producto...",
+            className: "input input-bordered w-full",
+            value: searchQuery,
+            onChange: (e) => setSearchQuery(e.target.value)
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-bold text-lg mb-4 text-brand-primary", children: "Categorías" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-2", children: categories.map((cat) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "flex items-center gap-3 cursor-pointer group", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "input",
+            {
+              type: "radio",
+              name: "category",
+              className: "radio radio-primary radio-sm",
+              checked: selectedCategory === cat,
+              onChange: () => setSelectedCategory(cat)
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `transition-colors ${selectedCategory === cat ? "text-brand-accent font-bold" : "text-slate-600 group-hover:text-brand-accent"}`, children: cat })
+        ] }) }, cat)) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-bold text-lg mb-4 text-brand-primary", children: "Precio Máximo" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "input",
+          {
+            type: "range",
+            min: "0",
+            max: "1000000",
+            step: "10000",
+            value: priceRange,
+            onChange: (e) => setPriceRange(Number(e.target.value)),
+            className: "range range-primary range-xs"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between text-xs text-slate-500 mt-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "$0" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-brand-accent", children: new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" }).format(priceRange) })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-6 bg-brand-primary rounded-2xl text-white shadow-xl", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "font-bold mb-2", children: "Despacho Gratis" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-slate-300", children: "En compras sobre $50.000 a toda la Región Metropolitana." })
+      ] })
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-grow", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row justify-between items-center mb-8 gap-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-slate-500", children: [
+          "Mostrando ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-brand-primary font-bold", children: filteredProducts.length }),
+          " productos"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "select",
+          {
+            className: "select select-bordered select-sm w-full sm:w-auto",
+            value: sortBy,
+            onChange: (e) => setSortBy(e.target.value),
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { children: "Más recientes" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { children: "Precio: Menor a Mayor" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { children: "Precio: Mayor a Menor" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { children: "Populares" })
+            ]
+          }
+        )
+      ] }),
+      filteredProducts.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6", children: filteredProducts.map((product) => /* @__PURE__ */ jsxRuntimeExports.jsx(ProductCard, { ...product }, product.id)) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "py-20 text-center", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xl font-bold text-slate-400", children: "No se encontraron productos" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            onClick: () => {
+              setSelectedCategory("Todos");
+              setPriceRange(1e6);
+              setSearchQuery("");
+            },
+            className: "btn btn-ghost mt-4 text-brand-accent",
+            children: "Limpiar filtros"
+          }
+        )
+      ] })
+    ] })
+  ] });
+};
 
 const $$Astro = createAstro();
-const $$Catalog = createComponent(($$result, $$props, $$slots) => {
+const $$Catalog = createComponent(async ($$result, $$props, $$slots) => {
   const Astro2 = $$result.createAstro($$Astro, $$props, $$slots);
   Astro2.self = $$Catalog;
-  const products = [
-    { id: "1", name: "L\xE1mpara de Dise\xF1o Minimalista", price: 129990, image: "/images/lamp.png", category: "Iluminaci\xF3n", isNew: true },
-    { id: "2", name: "Sill\xF3n Nordic Premium", price: 45e4, image: "/images/hero.png", category: "Mobiliario", onSale: true },
-    { id: "3", name: "Vela Arom\xE1tica de Cuarzo", price: 25e3, image: "/images/lamp.png", category: "Decoraci\xF3n" },
-    { id: "4", name: "Mesa de Centro M\xE1rmol", price: 18e4, image: "/images/hero.png", category: "Mobiliario", isNew: true },
-    { id: "5", name: "Espejo de Pared Ovalado", price: 85e3, image: "/images/lamp.png", category: "Decoraci\xF3n" },
-    { id: "6", name: "Coj\xEDn de Terciopelo", price: 15e3, image: "/images/hero.png", category: "Decoraci\xF3n", onSale: true }
-  ];
-  const categories = ["Todos", "Mobiliario", "Iluminaci\xF3n", "Decoraci\xF3n", "Arte"];
-  return renderTemplate`${renderComponent($$result, "BaseLayout", $$BaseLayout, { "title": "Cat\xE1logo | Tienda Astro", "description": "Explora nuestra colecci\xF3n completa de productos premium para el hogar." }, { "default": ($$result2) => renderTemplate` ${maybeRenderHead()}<div class="bg-slate-50 border-b border-slate-200 py-12"> <div class="container mx-auto px-4"> <h1 class="text-4xl font-bold text-brand-primary mb-4 tracking-tight">Nuestro Catálogo</h1> <div class="text-sm breadcrumbs text-slate-500"> <ul> <li><a href="/">Inicio</a></li> <li>Catálogo</li> </ul> </div> </div> </div> <div class="container mx-auto px-4 py-16"> <div class="flex flex-col lg:flex-row gap-12"> <!-- Sidebar Filters --> <aside class="w-full lg:w-64 flex-shrink-0"> <div class="sticky top-28 space-y-8"> <div> <h3 class="font-bold text-lg mb-4">Categorías</h3> <ul class="space-y-2"> ${categories.map((cat) => renderTemplate`<li> <label class="flex items-center gap-3 cursor-pointer group"> <input type="radio" name="category" class="radio radio-primary radio-sm"${addAttribute(cat === "Todos", "checked")}> <span class="text-slate-600 group-hover:text-brand-accent transition-colors">${cat}</span> </label> </li>`)} </ul> </div> <div> <h3 class="font-bold text-lg mb-4">Rango de Precio</h3> <input type="range" min="0" max="1000000" value="500000" class="range range-primary range-xs"> <div class="flex justify-between text-xs text-slate-500 mt-2"> <span>$0</span> <span>$1.000.000+</span> </div> </div> <div class="p-6 bg-brand-primary rounded-2xl text-white"> <h4 class="font-bold mb-2">Despacho Gratis</h4> <p class="text-sm text-slate-300">En compras sobre $50.000 a toda la Región Metropolitana.</p> </div> </div> </aside> <!-- Products Grid --> <div class="flex-grow"> <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4"> <p class="text-slate-500">Mostrando <span class="text-brand-primary font-bold">${products.length}</span> productos</p> <select class="select select-bordered select-sm w-full sm:w-auto"> <option disabled selected>Ordenar por</option> <option>Más recientes</option> <option>Precio: Menor a Mayor</option> <option>Precio: Mayor a Menor</option> <option>Populares</option> </select> </div> <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"> ${products.map((product) => renderTemplate`${renderComponent($$result2, "ProductCard", $$ProductCard, { ...product })}`)} </div> <!-- Pagination --> <div class="mt-16 flex justify-center"> <div class="join"> <button class="join-item btn btn-outline btn-sm">Anterior</button> <button class="join-item btn btn-primary btn-sm">1</button> <button class="join-item btn btn-outline btn-sm">2</button> <button class="join-item btn btn-outline btn-sm">3</button> <button class="join-item btn btn-outline btn-sm">Siguiente</button> </div> </div> </div> </div> </div> ` })}`;
+  const { data: productsData, error } = await supabase.from("products").select("*").gt("stock", 0).order("created_at", { ascending: false });
+  if (error) {
+    console.error("Error fetching catalog products:", error);
+  }
+  const products = productsData || [];
+  console.log(`[Catalog] Total products fetched: ${products.length}`);
+  const categories = ["Todos", "Mobiliario", "Iluminaci\xF3n", "Decoraci\xF3n"];
+  return renderTemplate`${renderComponent($$result, "BaseLayout", $$BaseLayout, { "title": "Cat\xE1logo | Tienda Astro", "description": "Explora nuestra colecci\xF3n completa de productos premium para el hogar." }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<div class="bg-slate-50 border-b border-slate-200 py-12"> <div class="container mx-auto px-4"> <h1 class="text-4xl font-bold text-brand-primary mb-4 tracking-tight">Nuestro Catálogo</h1> <div class="text-sm breadcrumbs text-slate-500"> <ul> <li><a href="/">Inicio</a></li> <li>Catálogo</li> </ul> </div> </div> </div> <div class="container mx-auto px-4 py-16"> ${renderComponent($$result2, "ProductExplorer", ProductExplorer, { "client:load": true, "initialProducts": products, "categories": categories, "client:component-hydration": "load", "client:component-path": "@/components/shop/ProductExplorer", "client:component-export": "ProductExplorer" })} </div> ` })}`;
 }, "C:/Users/ginor/OneDrive/Escritorio/templates/tienda-astro/src/pages/catalog.astro", void 0);
 
 const $$file = "C:/Users/ginor/OneDrive/Escritorio/templates/tienda-astro/src/pages/catalog.astro";

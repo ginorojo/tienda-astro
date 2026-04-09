@@ -1,2 +1,2 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-export { r as renderers } from './chunks/_@astro-renderers_pmHg7BfK.mjs';
+export { r as renderers } from './chunks/_@astro-renderers_Bp-P1Nvp.mjs';

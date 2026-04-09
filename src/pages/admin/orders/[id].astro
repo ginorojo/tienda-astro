@@ -1,6 +1,8 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
+
+const supabaseAdmin = getSupabaseAdmin(Astro.locals);
 import { ArrowLeft, Package, User, MapPin, CreditCard } from 'lucide-react';
 import type { Order, OrderItem } from '@/types/database';
 
