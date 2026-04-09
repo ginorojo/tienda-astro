@@ -352,7 +352,7 @@ const UPLOAD_PRESET = import.meta.env.PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   <!-- Add Product Modal -->
   <dialog id="add_product_modal" class="modal">
-    <div class="modal-box max-w-2xl">
+    <div class="modal-box max-w-2xl max-h-[85vh] overflow-y-auto">
       <h3 id="modal_title" class="font-bold text-2xl mb-6">Añadir Nuevo Producto</h3>
       <form method="POST" action="/api/products" class="space-y-6" id="productForm">
         <input type="hidden" name="id" id="edit_product_id" />

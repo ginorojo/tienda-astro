@@ -1,15 +1,24 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseServer';
 import type { Order } from '@/types/database';
 import { Package, Truck, CheckCircle, Clock } from 'lucide-react';
 
-// Fetch orders filtered by 'paid' by default
-const { data: ordersData, error } = await supabase
+// Get status from URL params
+const url = new URL(Astro.request.url);
+const currentFilter = url.searchParams.get('status') || 'all';
+
+// Fetch orders with dynamic filter
+let query = supabaseAdmin
   .from('orders')
   .select('*')
-  .eq('status', 'paid')
   .order('created_at', { ascending: false });
+
+if (currentFilter && currentFilter !== 'all') {
+  query = query.eq('status', currentFilter);
+}
+
+const { data: ordersData, error } = await query;
 
 const orders = ordersData || [];
 
@@ -22,20 +31,47 @@ const getStatusBadge = (status: string) => {
     default: return 'badge-ghost';
   }
 };
+
+const getStatusLabel = (filter: string) => {
+  switch (filter) {
+    case 'paid': return 'Órdenes Pagadas';
+    case 'pending': return 'Órdenes Pendientes';
+    case 'failed': return 'Órdenes Rechazadas/Fallidas';
+    default: return 'Todas las Órdenes';
+  }
+};
 ---
 
 <BaseLayout title="Gestión de Órdenes | Admin">
   <div class="container mx-auto px-4 py-12">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
       <div>
-        <h1 class="text-3xl font-bold text-brand-primary">Órdenes Confirmadas</h1>
-        <p class="text-slate-500">Listado de pagos recibidos y listos para envío</p>
+        <h1 class="text-3xl font-bold text-brand-primary">Gestión de Órdenes</h1>
+        <p class="text-slate-500">Listado completo de {getStatusLabel(currentFilter).toLowerCase()}</p>
       </div>
       <div class="flex gap-2 w-full sm:w-auto">
-        <div class="badge badge-lg badge-primary gap-2 font-bold px-4">
+        <div class="badge badge-lg badge-primary gap-2 font-bold px-4 shadow-sm">
           <CheckCircle className="w-4 h-4" />
-          {orders.length} Pagadas
+          {orders.length} {currentFilter === 'all' ? 'Totales' : 'Encontradas'}
         </div>
+      </div>
+    </div>
+
+    <!-- Filtros de Pestañas (Tabs) -->
+    <div class="mb-8 overflow-x-auto pb-2">
+      <div role="tablist" class="tabs tabs-boxed inline-flex bg-slate-100 p-1">
+        <a role="tab" class={`tab tab-lg ${currentFilter === 'all' ? 'tab-active font-bold bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`} href="?status=all">
+          Todos los estados
+        </a>
+        <a role="tab" class={`tab tab-lg ${currentFilter === 'paid' ? 'tab-active font-bold bg-white text-success shadow-sm' : 'text-slate-500'}`} href="?status=paid">
+          Pagados
+        </a>
+        <a role="tab" class={`tab tab-lg ${currentFilter === 'pending' ? 'tab-active font-bold bg-white text-warning shadow-sm' : 'text-slate-500'}`} href="?status=pending">
+          Pendientes
+        </a>
+        <a role="tab" class={`tab tab-lg ${currentFilter === 'failed' ? 'tab-active font-bold bg-white text-error shadow-sm' : 'text-slate-500'}`} href="?status=failed">
+          Rechazados
+        </a>
       </div>
     </div>
 
@@ -69,7 +105,7 @@ const getStatusBadge = (status: string) => {
                   {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(order.total)}
                 </td>
                 <td>
-                  <div class="flex flex-col gap-1">
+                  <div class="flex flex-col gap-1 items-start">
                     <span class={`badge ${getStatusBadge(order.status)} badge-sm`}>{order.status}</span>
                     {order.tracking_number && (
                       <span class="text-xs font-mono text-slate-400">Track: {order.tracking_number}</span>
@@ -80,14 +116,14 @@ const getStatusBadge = (status: string) => {
                   {new Date(order.created_at).toLocaleDateString('es-CL')}
                 </td>
                 <td class="text-right">
-                  <button class="btn btn-ghost btn-xs">Ver Detalle</button>
+                  <a href={`/admin/orders/${order.id}`} class="btn btn-ghost btn-xs">Ver Detalle</a>
                 </td>
               </tr>
             ))}
             {orders.length === 0 && (
               <tr>
                 <td colspan="6" class="text-center py-12 text-slate-400 italic">
-                  No hay órdenes pagadas para mostrar.
+                  No hay órdenes para mostrar.
                 </td>
               </tr>
             )}

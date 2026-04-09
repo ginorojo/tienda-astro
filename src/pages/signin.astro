@@ -65,11 +65,12 @@ if (accessToken && refreshToken) {
             </label>
           </div>
 
-          <div id="error-message" class="hidden flex items-center gap-3 p-4 rounded-2xl bg-red-500/20 border border-red-500/50 text-red-200 animate-shake">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <span id="error-text" class="text-sm font-medium">Error en el inicio de sesión</span>
+          <!-- Contenedor Toast para notificaciones -->
+          <div id="toast-container" class="toast toast-top toast-center z-50 hidden">
+            <div id="toast-message" class="alert shadow-lg text-white font-medium">
+              <span id="toast-icon" class="mr-2"></span>
+              <span id="toast-text"></span>
+            </div>
           </div>
 
           <button 
@@ -100,17 +101,42 @@ if (accessToken && refreshToken) {
 
 <script>
   const form = document.getElementById('login-form') as HTMLFormElement;
-  const errorMsg = document.getElementById('error-message');
-  const errorText = document.getElementById('error-text');
   const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
   const btnText = document.getElementById('btn-text');
   const btnLoader = document.getElementById('btn-loader');
+  const toastContainer = document.getElementById('toast-container');
+  const toastMessage = document.getElementById('toast-message');
+  const toastText = document.getElementById('toast-text');
+  const toastIcon = document.getElementById('toast-icon');
+
+  function showToast(message: string, isSuccess: boolean) {
+    if (!toastContainer || !toastMessage || !toastText || !toastIcon) return;
+    
+    toastText.textContent = message;
+    
+    if (isSuccess) {
+      toastMessage.className = "alert alert-success shadow-lg text-white font-medium animate-fade-in-up";
+      toastIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+    } else {
+      toastMessage.className = "alert alert-error shadow-lg text-white font-medium animate-fade-in-up animate-shake";
+      toastIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+    }
+    
+    toastContainer.classList.remove('hidden');
+    
+    // Hide toast after 4 seconds if it's an error
+    if (!isSuccess) {
+      setTimeout(() => {
+        toastContainer.classList.add('hidden');
+      }, 4000);
+    }
+  }
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     // Reset state
-    errorMsg?.classList.add('hidden');
+    toastContainer?.classList.add('hidden');
     submitBtn.disabled = true;
     btnText?.classList.add('opacity-0');
     btnLoader?.classList.remove('hidden');
@@ -124,19 +150,22 @@ if (accessToken && refreshToken) {
       });
 
       if (response.ok) {
-        window.location.href = '/admin';
+        showToast('¡Acceso aprobado! Redirigiendo al panel...', true);
+        setTimeout(() => {
+          window.location.href = '/admin';
+        }, 1500);
       } else {
         const text = await response.text();
-        if (errorMsg && errorText) {
-          errorText.textContent = text || 'Error en el inicio de sesión';
-          errorMsg.classList.remove('hidden');
+        let errorMessage = 'Error en el inicio de sesión';
+        if (text.includes('Invalid login credentials')) {
+          errorMessage = 'Correo o contraseña incorrectos';
+        } else if (text) {
+          errorMessage = text;
         }
+        showToast(errorMessage, false);
       }
     } catch (err) {
-      if (errorMsg && errorText) {
-        errorText.textContent = 'Error de conexión con el servidor';
-        errorMsg.classList.remove('hidden');
-      }
+      showToast('Error de conexión con el servidor', false);
     } finally {
       submitBtn.disabled = false;
       btnText?.classList.remove('opacity-0');

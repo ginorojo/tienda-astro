@@ -25,10 +25,70 @@ export const CheckoutForm: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Leer parámetro de la URL si Flow lo rechazó y redirigió de vuelta
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('error') === 'rejected') {
+        setError('El pago fue rechazado o anulado. Por favor, intenta usar otro medio de pago.');
+        // Limpiar la URL para que no quede el error si recargan
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Funcionalidad de pago (Flow.cl) se integrará aquí. Redirigiendo...');
-    // Aquí iría la lógica para crear la orden en la DB y redirigir a Flow
+    if (items.length === 0) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/checkout/flow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: total,
+          email: formData.email,
+          subject: `Compra de ${items.length} ${items.length === 1 ? 'producto' : 'productos'} en Tienda Astro`,
+          customerName: formData.name,
+          items: items.map(item => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          shippingData: {
+            region: formData.region,
+            comuna: formData.comuna,
+            address: formData.address,
+            rut: formData.rut,
+            phone: formData.phone
+          }
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al iniciar el pago con Flow');
+      }
+
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Hubo un problema de conexión. Intenta nuevamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formattedPrice = (price: number) => 
@@ -47,7 +107,7 @@ export const CheckoutForm: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-12">
+    <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-12">
       <div className="flex-grow space-y-8">
         {/* Contact info */}
         <section className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
@@ -168,11 +228,22 @@ export const CheckoutForm: React.FC = () => {
             </div>
           </div>
 
+          {error && (
+            <div className="alert alert-error mb-4 rounded-xl text-sm p-3">
+              <span>{error}</span>
+            </div>
+          )}
+
           <button 
-            onClick={handleSubmit}
-            className="btn btn-primary btn-block btn-lg bg-brand-accent border-brand-accent text-brand-primary font-bold hover:scale-[1.02] transition-transform"
+            type="submit"
+            disabled={isLoading || items.length === 0}
+            className="btn btn-primary btn-block btn-lg bg-brand-accent border-brand-accent text-brand-primary font-bold hover:scale-[1.02] transition-transform disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Pagar Ahora
+            {isLoading ? (
+              <span className="loading loading-spinner loading-md"></span>
+            ) : (
+              'Pagar Ahora'
+            )}
           </button>
 
           <div className="mt-8 space-y-4 text-xs text-white/60">
@@ -187,6 +258,6 @@ export const CheckoutForm: React.FC = () => {
           </div>
         </div>
       </aside>
-    </div>
+    </form>
   );
 };

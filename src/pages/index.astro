@@ -9,6 +9,7 @@ import type { Product } from '@/types/database';
 const { data: productsData, error } = await supabase
   .from('products')
   .select('*')
+  .gt('stock', 0)
   .order('created_at', { ascending: false });
 
 const featuredProducts: Product[] = productsData || [];

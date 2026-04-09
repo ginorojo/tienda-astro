@@ -47,16 +47,16 @@ const isAdminPage = Astro.url.pathname.startsWith("/admin");
           </button>
         )}
         
-        {hasSession ? (
+        <a href="/admin" class="btn btn-ghost btn-sm md:btn-md btn-circle tooltip tooltip-bottom" data-tip={hasSession ? "Panel Admin" : "Área Clientes"}>
+          <User className="w-5 h-5 md:w-6 md:h-6" />
+        </a>
+        
+        {hasSession && (
           <form action="/api/auth/signout" method="POST" class="flex items-center">
             <button type="submit" class="btn btn-ghost btn-sm md:btn-md btn-circle tooltip tooltip-bottom" data-tip="Cerrar Sesión">
               <LogOut className="w-5 h-5 md:w-6 md:h-6 text-error" />
             </button>
           </form>
-        ) : (
-          <a href="/admin" class="btn btn-ghost btn-sm md:btn-md btn-circle tooltip tooltip-bottom" data-tip="Área Clientes">
-            <User className="w-5 h-5 md:w-6 md:h-6" />
-          </a>
         )}
       </div>
     </div>

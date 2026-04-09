@@ -1,0 +1,155 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { supabaseAdmin } from '@/lib/supabaseServer';
+import { CheckCircle, XCircle } from 'lucide-react';
+
+let token = '';
+
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    token = formData.get('token')?.toString() || '';
+  } catch (e) {
+    console.error('Error reading POST formData on result.astro', e);
+  }
+}
+
+if (!token) {
+  const url = new URL(Astro.request.url);
+  token = url.searchParams.get('token') || '';
+}
+
+// Si de plano no hay token, significa que recargaron la web u ocurrió un problema,
+// los devolvemos al inicio.
+if (!token) {
+  return Astro.redirect('/catalog');
+}
+
+const apiKey = import.meta.env.FLOW_API_KEY;
+const secretKey = import.meta.env.FLOW_SECRET_KEY;
+const flowUrl = import.meta.env.FLOW_API_URL || 'https://sandbox.flow.cl/api';
+
+const params: Record<string, string> = {
+  apiKey: apiKey,
+  token: token
+};
+
+const keys = Object.keys(params).sort();
+let toSign = '';
+keys.forEach(k => {
+  toSign += k + params[k];
+});
+
+const encoder = new TextEncoder();
+const keyMaterial = await crypto.subtle.importKey(
+  'raw',
+  encoder.encode(secretKey),
+  { name: 'HMAC', hash: 'SHA-256' },
+  false,
+  ['sign']
+);
+
+const signatureBuffer = await crypto.subtle.sign(
+  'HMAC',
+  keyMaterial,
+  encoder.encode(toSign)
+);
+
+const hashArray = Array.from(new Uint8Array(signatureBuffer));
+const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+params.s = signature;
+const urlParams = new URLSearchParams(params);
+
+// Preguntamos a Flow qué pasó con esta transacción
+const response = await fetch(`${flowUrl}/payment/getStatus?${urlParams.toString()}`);
+const data = await response.json();
+
+const isPaid = data.status === 2;
+
+// REQUISITO SOLICITADO: Si no se pagó/fue rechazada, mostraremos la interfaz con el mensaje amigable de la parte inferior del archivo
+if (!isPaid && data.commerceOrder) {
+  // Asegurarnos de marcar la orden como fallida si volvió rechazada
+  await supabaseAdmin
+    .from('orders')
+    .update({ status: 'failed' })
+    .eq('id', data.commerceOrder);
+}
+
+// Si está pagado, nos aseguramos que se marque en el panel (por si el webhook demoró en llegar)
+if (isPaid && data.commerceOrder) {
+  // Solo actualizar si estaba pending para evitar carrera con el webhook
+  const { data: updatedOrders } = await supabaseAdmin
+    .from('orders')
+    .update({ 
+      status: 'paid',
+      flow_order_id: data.flowOrder ? data.flowOrder.toString() : null,
+      payment_method: data.paymentData?.media || 'Flow',
+    })
+    .eq('id', data.commerceOrder)
+    .eq('status', 'pending')
+    .select();
+
+  // Si la actualización devolvió filas, significa que nosotros cambiamos el estado
+  // de pending a paid exitosamente. Procedemos a descontar el stock.
+  if (updatedOrders && updatedOrders.length > 0) {
+    const { data: items } = await supabaseAdmin
+      .from('order_items')
+      .select('product_id, quantity')
+      .eq('order_id', data.commerceOrder);
+
+    if (items) {
+      for (const item of items) {
+        if (item.product_id) {
+          const { data: product } = await supabaseAdmin
+            .from('products')
+            .select('stock')
+            .eq('id', item.product_id)
+            .single();
+
+          if (product && typeof product.stock === 'number') {
+            await supabaseAdmin
+              .from('products')
+              .update({ stock: Math.max(0, product.stock - item.quantity) })
+              .eq('id', item.product_id);
+          }
+        }
+      }
+    }
+  }
+}
+---
+
+<BaseLayout title={`Pago Completado | Tienda Astro`}>
+  <div class="min-h-[60vh] flex items-center justify-center py-12 px-4">
+    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 max-w-md w-full text-center">
+      {isPaid ? (
+        <>
+          <div class="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-success" />
+          </div>
+          <h1 class="text-3xl font-bold text-slate-800 mb-4">¡Pago Exitoso!</h1>
+          <p class="text-slate-500 mb-8">
+            Tu pago ha sido procesado correctamente. Enviaremos los detalles de tu orden al correo ingresado.
+          </p>
+          <div class="space-y-3">
+            <a href="/catalog" class="btn btn-primary btn-block bg-brand-primary text-white border-none py-3 rounded-xl hover:bg-brand-primary/90 transition-colors">Seguir Comprando</a>
+          </div>
+        </>
+      ) : (
+        <>
+          <div class="w-20 h-20 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <XCircle className="w-10 h-10 text-error" />
+          </div>
+          <h1 class="text-3xl font-bold text-slate-800 mb-4">Pago Rechazado</h1>
+          <p class="text-slate-500 mb-8">
+            Hubo un problema al procesar tu pago, fue rechazado por el emisor, o bien cancelaste la transacción. No se ha realizado ni se realizará ningún cargo a tu tarjeta.
+          </p>
+          <div class="space-y-3">
+            <a href="/checkout" class="btn btn-primary btn-block bg-slate-800 text-white border-none py-3 rounded-xl hover:bg-slate-700 transition-colors">Volver a intentar</a>
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+</BaseLayout>
