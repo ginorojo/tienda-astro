@@ -13,5 +13,8 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcore()],
   },
+  security: {
+    checkOrigin: false,
+  },
 });
  
