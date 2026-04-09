@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 export const POST: APIRoute = async ({ request, url, locals }) => {
   try {
@@ -20,6 +20,7 @@ export const POST: APIRoute = async ({ request, url, locals }) => {
     }
 
     // Insert pending order in Database
+    const supabaseAdmin = getSupabaseAdmin(locals);
     const { data: orderData, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({

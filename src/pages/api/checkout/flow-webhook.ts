@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
@@ -57,6 +57,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const data = await response.json();
 
     if (data.status === 2) {
+      const supabaseAdmin = getSupabaseAdmin(locals);
       // Estado 2 es "Pagado". Proceder a actualizar la DB.
       const { data: updatedOrders, error } = await supabaseAdmin
         .from('orders')
@@ -101,6 +102,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         }
       }
     } else if (data.status === 3 || data.status === 4) {
+      const supabaseAdmin = getSupabaseAdmin(locals);
       // Estado 3 es Rechazado, 4 es Anulado
       await supabaseAdmin
         .from('orders')
